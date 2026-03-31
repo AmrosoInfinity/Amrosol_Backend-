@@ -1,32 +1,60 @@
-import hashlib, random, os
-from utils.token_utils import fetch_tokens_from_gist
-from git_push import push_to_frontend_repo
+import os
+import sys
+from datetime import datetime
 
-WEB_BASE = "https://amrosol.online"
+def main():
+    # Ambil argumen service dan userId dari workflow dispatch
+    if len(sys.argv) < 3:
+        print("Usage: python generate.py <service> <userId>")
+        sys.exit(1)
 
-def generate_token(service: str, user_id: str):
-    tokens = fetch_tokens_from_gist(service)
-    chosen = random.choice(tokens)
+    service = sys.argv[1]
+    user_id = sys.argv[2]
 
-    hash_token = hashlib.sha256(chosen.encode()).hexdigest()[:16]
+    # Pastikan folder token ada
+    os.makedirs("token", exist_ok=True)
 
-    folder = f"./tokens/{service}/{user_id}"
-    os.makedirs(folder, exist_ok=True)
-    filepath = f"{folder}/{hash_token}.html"
+    # Nama file output
+    filename = f"token/{service}_{user_id}.html"
 
+    # Isi HTML sederhana
     html_content = f"""<!DOCTYPE html>
-<html lang="id">
-<head><meta charset="UTF-8"><title>Token {service}</title></head>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Token {service} - {user_id}</title>
+    <style>
+        body {{
+            font-family: Arial, sans-serif;
+            background: #f9f9f9;
+            color: #333;
+            text-align: center;
+            padding: 50px;
+        }}
+        .box {{
+            border: 2px solid #4CAF50;
+            padding: 20px;
+            background: #fff;
+            display: inline-block;
+        }}
+    </style>
+</head>
 <body>
-<h2>Token {service.capitalize()}</h2>
-<p id="token">{chosen}</p>
-<button onclick="navigator.clipboard.writeText(document.getElementById('token').innerText)">Salin</button>
-</body></html>"""
+    <div class="box">
+        <h1>Token {service.title()}</h1>
+        <p>User ID: {user_id}</p>
+        <p>Generated at: {datetime.utcnow().isoformat()} UTC</p>
+        <p><strong>Token:</strong> {service}_{user_id}_TOKEN_PLACEHOLDER</p>
+    </div>
+</body>
+</html>
+"""
 
-    with open(filepath, "w", encoding="utf-8") as f:
+    # Tulis file
+    with open(filename, "w", encoding="utf-8") as f:
         f.write(html_content)
 
-    # Push ke repo frontend (GitHub Pages)
-    push_to_frontend_repo(service, user_id, hash_token)
+    print(f"Generated token file: {filename}")
 
-    return f"{WEB_BASE}/{service}/{user_id}/{hash_token}"
+if __name__ == "__main__":
+    main()
