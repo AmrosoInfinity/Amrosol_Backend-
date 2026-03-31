@@ -1,18 +1,23 @@
-const { TOKEN_TTL_MS } = require('../config/cacheConfig');
-const cache = new Map();
+import time
+from config.cache_config import TTL_DEFAULT, TTL_SERVICE
 
-function setToken(userId, service, hashToken, token, ttlMs = TOKEN_TTL_MS) {
-  const key = `${userId}:${service}:${hashToken}`;
-  cache.set(key, token);
+cache = {}
 
-  // hapus otomatis setelah TTL
-  setTimeout(() => {
-    cache.delete(key);
-  }, ttlMs);
-}
+def set_token(service, userId, hashToken, token):
+    ttl = TTL_SERVICE.get(service, TTL_DEFAULT)
+    expire_at = time.time() + ttl
+    cache[(service, userId, hashToken)] = {
+        "token": token,
+        "ttl": ttl,
+        "expire_at": expire_at
+    }
 
-function getToken(userId, service, hashToken) {
-  return cache.get(`${userId}:${service}:${hashToken}`);
-}
-
-module.exports = { setToken, getToken };
+def fetch_token(service, userId, hashToken):
+    key = (service, userId, hashToken)
+    if key in cache:
+        data = cache[key]
+        if time.time() < data["expire_at"]:
+            return data
+        else:
+            del cache[key]
+    return None
