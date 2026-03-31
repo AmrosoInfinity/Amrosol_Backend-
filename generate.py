@@ -1,9 +1,8 @@
-import os
-import sys
+import os, sys, hashlib
 from datetime import datetime
+from utils.token_utils import fetch_tokens_from_gist
 
 def main():
-    # Ambil argumen service dan userId dari workflow dispatch
     if len(sys.argv) < 3:
         print("Usage: python generate.py <service> <userId>")
         sys.exit(1)
@@ -11,50 +10,41 @@ def main():
     service = sys.argv[1]
     user_id = sys.argv[2]
 
-    # Pastikan folder token ada
     os.makedirs("token", exist_ok=True)
 
-    # Nama file output
-    filename = f"token/{service}_{user_id}.html"
+    # Ambil semua token dari gist
+    tokens = fetch_tokens_from_gist(service)
 
-    # Isi HTML sederhana
+    # Logika pemilihan token: misalnya pakai userId sebagai index
+    try:
+        index = int(user_id) % len(tokens)
+        token_value = tokens[index]
+    except Exception:
+        token_value = "TOKEN_NOT_FOUND"
+
+    # Hash untuk URL unik
+    hash_token = hashlib.sha256(token_value.encode()).hexdigest()[:12]
+
+    filename = f"token/{service}_{user_id}_{hash_token}.html"
+    url = f"https://amrosol.online/{service}/{user_id}/{hash_token}.html"
+
     html_content = f"""<!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Token {service} - {user_id}</title>
-    <style>
-        body {{
-            font-family: Arial, sans-serif;
-            background: #f9f9f9;
-            color: #333;
-            text-align: center;
-            padding: 50px;
-        }}
-        .box {{
-            border: 2px solid #4CAF50;
-            padding: 20px;
-            background: #fff;
-            display: inline-block;
-        }}
-    </style>
-</head>
+<head><meta charset="UTF-8"><title>Token {service} - {user_id}</title></head>
 <body>
-    <div class="box">
-        <h1>Token {service.title()}</h1>
-        <p>User ID: {user_id}</p>
-        <p>Generated at: {datetime.utcnow().isoformat()} UTC</p>
-        <p><strong>Token:</strong> {service}_{user_id}_TOKEN_PLACEHOLDER</p>
-    </div>
+    <h1>Token {service.title()}</h1>
+    <p>User ID: {user_id}</p>
+    <p>Generated at: {datetime.utcnow().isoformat()} UTC</p>
+    <p><strong>Token:</strong> {token_value}</p>
+    <p>URL: <a href="{url}">{url}</a></p>
 </body>
 </html>
 """
-
-    # Tulis file
     with open(filename, "w", encoding="utf-8") as f:
         f.write(html_content)
 
     print(f"Generated token file: {filename}")
+    print(f"Public URL: {url}")
 
 if __name__ == "__main__":
     main()
