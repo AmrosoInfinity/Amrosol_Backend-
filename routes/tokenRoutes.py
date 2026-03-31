@@ -1,7 +1,12 @@
 from flask import Blueprint, jsonify
 from controllers.token_controller import get_token
+from middleware.request_logger import log_request
 
 token_bp = Blueprint("token", __name__)
+
+@token_bp.before_request
+def before_request():
+    log_request()
 
 @token_bp.route("/<service>/<userId>/<hashToken>")
 def token(service, userId, hashToken):
