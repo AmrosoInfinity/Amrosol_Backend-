@@ -1,11 +1,9 @@
 import datetime
+from flask import request
 
-def request_logger():
+def log_request():
     now = datetime.datetime.now().isoformat()
-    # Flask menyediakan objek request global
-    from flask import request
     method = request.method
     path = request.path
     ip = request.remote_addr
-
     print(f"[{now}] {ip} {method} {path}")
