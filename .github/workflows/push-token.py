@@ -1,15 +1,18 @@
 name: Push Token to Web
 
 on:
-  workflow_dispatch:   # bisa dipicu manual atau lewat API dispatch
-  push:
-    paths:
-      - "token/**"     # kalau ada perubahan di folder token
+  workflow_dispatch:
+    inputs:
+      service:
+        description: "Service name"
+        required: true
+      userId:
+        description: "User ID"
+        required: true
 
 jobs:
-  build-and-push:
+  generate-and-push:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout backend repo
         uses: actions/checkout@v3
@@ -22,8 +25,8 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Generate token HTML
-        run: python generate.py
+      - name: Run generator
+        run: python generate.py ${{ github.event.inputs.service }} ${{ github.event.inputs.userId }}
 
       - name: Checkout web repo
         uses: actions/checkout@v3
@@ -35,11 +38,11 @@ jobs:
       - name: Copy generated tokens
         run: cp -r token/* web/tokens/
 
-      - name: Commit & push to web repo
+      - name: Commit & push
         run: |
           cd web
           git config user.name "github-actions"
           git config user.email "actions@github.com"
           git add .
-          git commit -m "Update tokens from backend"
+          git commit -m "Update token for ${{ github.event.inputs.service }} user ${{ github.event.inputs.userId }}"
           git push
